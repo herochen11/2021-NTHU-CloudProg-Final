@@ -24,6 +24,16 @@ class AuthService {
     authStateController.add(state);
   }
 
+  Future<String> getUsername() async {
+    try {
+      final awsUser = await Amplify.Auth.getCurrentUser();
+      print(awsUser.username);
+      return awsUser.username;
+    } catch (e) {
+      return 'error';
+    }
+  }
+
   // 6
   void showLogin() {
     final state = AuthState(authFlowStatus: AuthFlowStatus.login);
@@ -111,8 +121,7 @@ class AuthService {
   void checkAuthStatus() async {
     
     try {
-      AuthSession res = await Amplify.Auth.fetchAuthSession(options: CognitoSessionOptions(getAWSCredentials: true));
-     
+      AuthSession res = await Amplify.Auth.fetchAuthSession(options: CognitoSessionOptions(getAWSCredentials: true));  
       final state = AuthState(authFlowStatus: AuthFlowStatus.session);
       authStateController.add(state);
       print('state result1 : ${res.isSignedIn}');

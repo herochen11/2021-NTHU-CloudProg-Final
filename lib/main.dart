@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import 'package:amplify_api/amplify_api.dart';
 import 'amplifyconfiguration.dart';
+
 import 'package:test_final/login_page.dart';
 import 'package:test_final/sign_up_page.dart';
 import 'package:test_final/auth_service.dart';
 import 'package:test_final/Verification_page.dart';
 import 'package:test_final/welcome_page.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -25,7 +28,6 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _configureAmplify();
-    //_authService.checkAuthStatus();
   }
 
   @override
@@ -64,7 +66,7 @@ class _MyAppState extends State<MyApp> {
               
               if (snapshot.data?.authFlowStatus == AuthFlowStatus.session)
                 MaterialPage(
-                  child: WelcomePage(shouldLogOut: _authService.logOut))
+                  child: WelcomePage(shouldLogOut: _authService.logOut ))
             ],
             onPopPage: (route, result) => route.didPop(result),
           );
@@ -80,9 +82,8 @@ class _MyAppState extends State<MyApp> {
   }
   void _configureAmplify() async {
     
-    AmplifyAuthCognito authPlugin = AmplifyAuthCognito();
-
-    Amplify.addPlugin(authPlugin);
+    Amplify.addPlugin(AmplifyAuthCognito());
+    Amplify.addPlugin(AmplifyAPI());
 
     try {
       await Amplify.configure(amplifyconfig);
