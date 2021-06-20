@@ -19,12 +19,14 @@ class Video{
   final String timeStamp;
   final String link;
   final String type;
+  final String source;
 
   Video({
     required this.title,
     required this.timeStamp,
     required this.link,
-    required this.type
+    required this.type,
+    required this.source
   });
 
   factory Video.fromJson(Map<String, dynamic> json) {
@@ -32,7 +34,8 @@ class Video{
       title: json['video'] as String,
       timeStamp: json['timestamp'] as String ,
       link: json['link'] as String,
-      type: json['type'] as String
+      type: json['type'] as String,
+      source: json['source'] as String,
     );
   }
 
@@ -40,6 +43,7 @@ class Video{
 class _ViolationRecordPageState extends State<ViolationRecordPage>{
 
   var init = false;
+  var none = false;
   late List<Video> videoList;
 
   @override
@@ -50,12 +54,14 @@ class _ViolationRecordPageState extends State<ViolationRecordPage>{
 
   Future<void> initVideoURL() async{
       
-      Uri uri = Uri.parse('https://7up3g5sst4.execute-api.us-east-1.amazonaws.com/final/getdrivingrecordurl');
+      Uri uri = Uri.parse('https://f47jfxjyc0.execute-api.us-east-1.amazonaws.com/final/getviolationvideo?');
       final response = await http.get(uri);
       if(response.statusCode == 200){
           Map<String, dynamic> result = jsonDecode(response.body);
           setState(() {
             videoList = result['message'].map<Video>((json) => Video.fromJson(json)).toList();
+            if(videoList.length == 0)
+              none = true;
             init = true;
           });
           //videoList = result['message'].map<Video>((json) => Video.fromJson(json)).toList();
@@ -114,9 +120,19 @@ class _ViolationRecordPageState extends State<ViolationRecordPage>{
                       Expanded(
                           flex: 8,
                           child: Container(
-                            height: 128,
-                            color: Colors.amberAccent,
-                            //alignment: Alignent.center,
+                            height: 128, 
+                            child: 
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children:[
+                                  Column(
+                                    children: [
+                                      Text(videoList[index].title,style: TextStyle(fontSize: 20,)),
+                                      Text(videoList[index].type,style: TextStyle(fontSize: 18,)),
+                                    ]),
+                                  Text(videoList[index].timeStamp,style: TextStyle(fontSize: 14,))
+                                ]
+                              )
                             )
                         ),
                     ]

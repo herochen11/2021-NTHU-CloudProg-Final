@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:ffi';
+import 'dart:core';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:amplify_flutter/amplify.dart';
 import 'package:test_final/drive_record_page.dart';
+import 'package:test_final/violation_record.dart';
 
 
 class WelcomePage extends StatefulWidget {
@@ -54,7 +57,22 @@ class _WelcomePageState extends State<WelcomePage> {
   
 
   String username = '';
+  Timer? timer;
+  late num bpm;
+  late String camera;
+  late num axis_sensor;  
 
+  @override
+  void initState() {
+    super.initState();
+    timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _getSeneorState());
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
   
   _WelcomePageState(){
      _getUsername().then((value) => setState((){
@@ -91,8 +109,10 @@ class _WelcomePageState extends State<WelcomePage> {
           children: [ 
           Column(
             //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children:[        
-                Card(
+            children:[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(0, 50, 0, 30),
+                  child: Card(
                   elevation: 0,
                   color: Colors.transparent,
                   child: Column(
@@ -101,57 +121,73 @@ class _WelcomePageState extends State<WelcomePage> {
                      ListTile(
                         leading: Image(
                             image: AssetImage('icon/car.png'),
+                            width:50,
+                            height: 50
                           ),
-                        title: Text('Hello, $username'),
-                        subtitle: Text('Your current sensor states are  '),
+                        title: Text('Hello, $username',style: TextStyle(fontSize: 18),),
+                        subtitle: Text('Your current sensor states are  ',style: TextStyle(fontSize: 15)),
+                        dense: true,
                     ), 
                     Container(
                       alignment: Alignment.center,
-                      child: FutureBuilder<Widget>(
+                      child: FutureBuilder<String>(
                         future:  _getSeneorState(),
-                        builder: (context,snapshot) {
-                          if (snapshot.hasData) {
-                            //return Text('LOADING...');
-                            return snapshot.requireData;
-                          } else {
-                            return Text('LOADING...');
-                          }
+                        builder: (context,snapshot){
+                            if (snapshot.hasData) {
+                              //return Text('LOADING...');
+                              
+                              return Container(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children:[
+                                          Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Camera Status: ' + camera,style: TextStyle(fontSize: 18))),
+                                          bpm.compareTo(0.0) == 1?
+                                            Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Heart Beat Rate: ' + bpm.toInt().toString() + " bpm" ,style: TextStyle(fontSize: 18))): 
+                                            Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Heart Beat Rate: Abnormal' ,style: TextStyle(fontSize: 18,color: Colors.red))),
+                                          
+                                          //Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Gas Sensor: ' + result['message']['gas_sensor'],style: TextStyle(fontSize: 18))),
+                                          axis_sensor.compareTo(180.0) == -1?
+                                            Padding(padding: EdgeInsets.only(bottom: 10) ,child: Text('Three_axis_sensor: ' + axis_sensor.toString() ,style: TextStyle(fontSize: 18))):
+                                            Padding(padding: EdgeInsets.only(bottom: 10) ,child: Text('Three_axis_sensor: Abnormal ',style: TextStyle(fontSize: 18,color: Colors.red))),
+                                        ]
+                                      ));
+                            } else {
+                              return Text('LOADING...');
+                            }                        
                         },
                       ),
-                )]),     
+                    )]),     
+                  ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   mainAxisSize: MainAxisSize.max,
                   children: [
-                    Column(
-                      children: [IconButton(onPressed: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context)=>DriveRecordPage()),
-                          );}, 
-                        icon: Icon(Icons.video_library_outlined)),
-                        Text('Driving Record')
-                      ]),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children:[IconButton(onPressed: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context)=>DriveRecordPage()),
-                          );}, 
-                        icon: Icon(Icons.movie_outlined)),
-                        Text('Violation Record',textScaleFactor: 1,)
-                      ]),
-                    Column(
-                      children:[IconButton(onPressed: (){
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context)=>DriveRecordPage()),
-                          );}, 
-                        icon: Icon(Icons.smart_toy_outlined)),
-                        Text('Lex Bot')
-                    ])
+                    Container(
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [IconButton(onPressed: (){
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context)=>DriveRecordPage()),
+                            );}, 
+                          icon: Icon(Icons.video_library_outlined)),
+                          Text('Driving Record')
+                        ]),
+                      ),
+                    Container(
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children:[IconButton(onPressed: (){
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context)=>ViolationRecordPage()),
+                            );}, 
+                          icon: Icon(Icons.movie_outlined)),
+                          Text('Violation Record',textScaleFactor: 1,)
+                        ]),
+                    )
                   ],
                 )
             ]),
@@ -168,27 +204,38 @@ class _WelcomePageState extends State<WelcomePage> {
       return name;
   }
 
-   Future<Widget> _getSeneorState() async{
-    
+   Future<String> _getSeneorState() async{
     final Completer<Widget> completer = Completer();
-    Uri uri = Uri.parse('https://7up3g5sst4.execute-api.us-east-1.amazonaws.com/final/getsensorstate?');
+    Uri uri = Uri.parse('https://f47jfxjyc0.execute-api.us-east-1.amazonaws.com/final/getsensor');
     final response = await http.get(uri);
-   
+    //print(response.body);
     if(response.statusCode == 200){
       Map<String, dynamic> result = json.decode(response.body);
 
-      completer.complete(
+      setState(() {
+        bpm = result['message']['BPM'];
+        camera = result['message']['Camera'];
+        axis_sensor = result['message']['Bearing'];
+      });
+      print(camera);
+      print(bpm);
+      print(axis_sensor);
+      /*completer.complete(
         Container(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children:[
-              Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Camera Status: ' + result['message']['camera'])),
-              Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Heart Beat Rate: ' + result['message']['heart_beat_sensor'])),
-              Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Gas Sensor: ' + result['message']['gas_sensor'])),
-              Padding(padding: EdgeInsets.only(bottom: 10) ,child: Text('Three_axis_sensor: ' + result['message']['three_axis_sensor'])),
+              Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Camera Status: ' + camera,style: TextStyle(fontSize: 18))),
+              int.parse(bpm)>0?
+                Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Heart Beat Rate: ' + bpm ,style: TextStyle(fontSize: 18))): 
+                Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Heart Beat Rate: Abnoemal' ,style: TextStyle(fontSize: 18,color: Colors.red))),
+              
+              //Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Gas Sensor: ' + result['message']['gas_sensor'],style: TextStyle(fontSize: 18))),
+              Padding(padding: EdgeInsets.only(bottom: 10) ,child: Text('Three_axis_sensor: ' + axis_sensor ,style: TextStyle(fontSize: 18))),
             ]
           ))
-      );
+      );*/
+      return 'done';
      }
      else{
         completer.complete(
@@ -198,7 +245,7 @@ class _WelcomePageState extends State<WelcomePage> {
         )
       );
      }
-     return completer.future;
+     return 'done';
   }
 }
 

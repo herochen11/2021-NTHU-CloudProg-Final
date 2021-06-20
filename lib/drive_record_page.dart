@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:test_final/play_video.dart';
@@ -37,6 +38,7 @@ class Video{
 class _DriveRecordPageState extends State<DriveRecordPage>{
 
   var init = false;
+  var none = false;
   late List<Video> videoList;
 
   @override
@@ -47,12 +49,15 @@ class _DriveRecordPageState extends State<DriveRecordPage>{
 
   Future<void> initVideoURL() async{
       
-      Uri uri = Uri.parse('https://7up3g5sst4.execute-api.us-east-1.amazonaws.com/final/getdrivingrecordurl');
+      Uri uri = Uri.parse('https://f47jfxjyc0.execute-api.us-east-1.amazonaws.com/final/getdrivevideo');
       final response = await http.get(uri);
       if(response.statusCode == 200){
           Map<String, dynamic> result = jsonDecode(response.body);
-          setState(() {
+        setState(() {
             videoList = result['message'].map<Video>((json) => Video.fromJson(json)).toList();
+            print(videoList.length);
+            if(videoList.length == 0)
+              none = true;
             init = true;
           });
           //videoList = result['message'].map<Video>((json) => Video.fromJson(json)).toList();
@@ -112,8 +117,14 @@ class _DriveRecordPageState extends State<DriveRecordPage>{
                           flex: 8,
                           child: Container(
                             height: 128,
-                            color: Colors.amberAccent,
-                            //alignment: Alignent.center,
+                            child:
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children:[
+                                  Text(videoList[index].title,style: TextStyle(fontSize: 20,)),
+                                  Text(videoList[index].timeStamp,style: TextStyle(fontSize: 14),)
+                                ]
+                              )
                             )
                         ),
                     ]
@@ -123,7 +134,16 @@ class _DriveRecordPageState extends State<DriveRecordPage>{
             );
           },
           separatorBuilder: (BuildContext context, int index) => const Divider(),
-      ) : Container(  
+      ) : none?
+          Container(  
+          alignment: Alignment.center,
+          child:Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children:  [
+            Text('No video Record'),
+          ],
+          )):
+          Container(  
           alignment: Alignment.center,
           child:Column(
           mainAxisAlignment: MainAxisAlignment.center,
